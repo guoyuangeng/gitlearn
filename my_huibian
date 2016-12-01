@@ -3,6 +3,11 @@
 @ 功能：设置SDRAM，将程序复制到SDRAM，然后跳到SDRAM继续执行
 @*************************************************************************  
 
+@Don't worry!
+@This is just a test for git.
+
+
+
 .equ        MEM_CTL_BASE,       0x48000000		@the base of memery ctrl regester
 .equ        SDRAM_BASE,         0x30000000		@the base of SDRAM 
 
