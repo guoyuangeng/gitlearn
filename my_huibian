@@ -1,0 +1,80 @@
+@*************************************************************************
+@ File：head.S
+@ 功能：设置SDRAM，将程序复制到SDRAM，然后跳到SDRAM继续执行
+@*************************************************************************  
+
+.equ        MEM_CTL_BASE,       0x48000000		@the base of memery ctrl regester
+.equ        SDRAM_BASE,         0x30000000		@the base of SDRAM 
+
+
+.text 									@section of text,讲以下的内容编译到代码段
+.global _start							@将_start 定义为全局变量
+
+_start:
+	bl disable_watching_dog
+	bl mem_setup
+	bl copy_steppingstone_to_sdram
+	ldr pc ,=on_sdram
+	
+on_sdram:
+	ldr sp, 0x34000000			@设置栈，此时的栈默认向下增长；对于栈的操作是“自动挡”
+	bl main						@跳转到C语言主程序运行，这也是为什么要设置栈的原因
+loop:
+	bl loop
+	
+		
+sidable_watching_dog:
+	@关闭看门狗
+	mov r0, #0x53000000
+	mov r1, #0x0
+	@ldr [r0], r1				@ldr是load数据到“内部寄存器中”
+	str r1, [r0]				@r0是一个“外部寄存器”，str的意思是store数据到“外部寄存器中”
+	mov pc, lr					@呼应与bl disable_watching_dog,
+
+mem_setup:
+	@设置存储控制寄存器			@开始于bl mem_setup
+	@ldr r1, =MEM_CTL_BASE		@不好，可以优化，
+	mov r1, #MEM_CTL_BASE		@更快
+	@ldr r2, =mem_config		@错误
+	adr r2, mem_config			@将men_config开始，数据定义的伪操作的首地址放入r2
+	add r3, r1, #(4*13)			@把r3设置成一个比较的寄存器
+	
+l:
+	ldr r0, [r2], #4			@把r2地址内容给r0，r0相当于buffer
+	str r0, [r1], #4			@把r0即buffer，内容考到r1地址中
+	cmp r1, r3
+	bne bl
+	
+	ldr pc, lr					@对应于bl mem_setup
+	
+copy_steppingstone_to_sdram:
+	@将steppingstone的4K内容，copy到sdram上
+	
+	mov r1, #0x0
+	mov r2, #SDRAM_BASE
+	add r3, r1, (4*1024)
+
+l:	
+	ldr r0, [r1], #4
+	str r0, [r2], #4
+	cmp r2, r3
+	bne bl
+	
+	ldr pc, lr					@对应于bl mem_setup
+	
+
+.align 4						@将一下内容4字节对齐
+    .long   0x22011110      @ BWSCON
+    .long   0x00000700      @ BANKCON0
+    .long   0x00000700      @ BANKCON1
+    .long   0x00000700      @ BANKCON2
+    .long   0x00000700      @ BANKCON3  
+    .long   0x00000700      @ BANKCON4
+    .long   0x00000700      @ BANKCON5
+    .long   0x00018005      @ BANKCON6
+    .long   0x00018005      @ BANKCON7
+    .long   0x008C07A3      @ REFRESH
+    .long   0x000000B1      @ BANKSIZE
+    .long   0x00000030      @ MRSRB6
+    .long   0x00000030      @ MRSRB7
+	
