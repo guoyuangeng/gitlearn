@@ -5,7 +5,8 @@
 
 @Don't worry!
 @This is just a test for git.
-
+@Don't worry!
+@This is also a test for git.Haha!
 
 
 .equ        MEM_CTL_BASE,       0x48000000		@the base of memery ctrl regester
